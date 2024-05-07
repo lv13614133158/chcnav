@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(chcnav_driver)
+project(chcnav)
 
 message(STATUS "---------------------------")
 message(STATUS "-- USE CHCNAV ROS DRIVER --")
@@ -133,6 +133,11 @@ if (NTRIP_SERVER_INCLUDE)
 
 endif()
 
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME})
+
+
 # 设置依赖库
 set(CHCNAV_ROS_LIBS ${catkin_LIBRARIES} ${CMAKE_THREAD_LIBA_INIT} ${CHCNAV_ROS_LIBS} pthread dl)
 
@@ -168,6 +173,7 @@ foreach(SINGLE_NODE_FILE ${CHCNAV_NODE_SOURCES} )
         DESTINATION lib/${PROJECT_NAME})
 
 endforeach(SINGLE_NODE_FILE)
+
 
 ament_package()
 
