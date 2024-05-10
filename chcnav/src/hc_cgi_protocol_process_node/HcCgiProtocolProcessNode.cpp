@@ -23,7 +23,8 @@ static rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gs_fix_pub;
 static rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr gs_imu_pub;
 
 static unsigned int g_leaps = 18;
-
+static std::string imu_frame_id;
+static std::string gnss_frame_id;
 /**
  * @brief 处理华测协议的回调函数
  *
@@ -36,10 +37,20 @@ int main(int argc, char **argv)
     rclcpp::init(argc, argv);
     std::shared_ptr<rclcpp::Node> nh = rclcpp::Node::make_shared("HcCgiProtocolProcessNode");
     std::shared_ptr<rclcpp::Node> private_nh = nh;
+
+    private_nh->declare_parameter<std::string>("imu_frame", imu_frame_id);
+    private_nh->get_parameter("imu_frame", imu_frame_id); 
+    //std::cout<<" imu_frame_id "<<imu_frame_id<<std::endl;
+
+    private_nh->declare_parameter<std::string>("gnss_frame", imu_frame_id);
+   // private_nh->get_parameter("gnss_frame", gnss_frame_id); 
+
+     std::cout<<" gnss_frame_id "<<gnss_frame_id<<std::endl;
+
     auto pvt_source = private_nh->create_subscription<msg_interfaces::msg::Hcinspvatzcb>("/chcnav/devpvt", 1000, pvt_callback);
     auto serial_suber = nh->create_subscription<msg_interfaces::msg::HcSentence>("/chcnav/hc_sentence", 1000, hc_sentence_callback);
 
-    gs_fix_pub = nh->create_publisher<sensor_msgs::msg::NavSatFix>("/sensing/gnss/ublox/nav_sat_fix", 1000);
+    gs_fix_pub = private_nh->create_publisher<sensor_msgs::msg::NavSatFix>("/sensing/gnss/ublox/nav_sat_fix", 1000);
     gs_imu_pub = private_nh->create_publisher<sensor_msgs::msg::Imu>("/sensing/imu/tamagawa/imu_raw", 1000);
  
 
@@ -298,7 +309,7 @@ static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg)
 
     // publish NavSatFix msg
     fix.header = msg->header;
-    fix.header.frame_id="gnss_link";
+    fix.header.frame_id=gnss_frame_id;
     fix.altitude = msg->altitude;
     fix.longitude = msg->longitude;
     fix.latitude = msg->latitude;
@@ -313,7 +324,7 @@ static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg)
 
     // publish imu msg
     imu.header = msg->header;
-    imu.header.frame_id="imu_link";
+    imu.header.frame_id=imu_frame_id;
     imu.header.stamp = rclcpp::Clock().now();
 
     imu.angular_velocity.x = msg->vehicle_angular_velocity.x / 180 * M_PI;
