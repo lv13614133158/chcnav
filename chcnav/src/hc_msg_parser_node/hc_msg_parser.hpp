@@ -249,7 +249,7 @@ int parser_read_handler(void *buffer, size_t size, size_t *size_read, void *pars
 
 int msg_recv_callback(hc__single_msg_t single_msg, hc__msg_parser_node *node)
 {
-    RCLCPP_INFO(node->nh->get_logger(),"msg received!");
+    //RCLCPP_INFO(node->nh->get_logger(),"msg received!");
     int index;
     char raw_xor_string[5];
     unsigned char xor_check_uchar;

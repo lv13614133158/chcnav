@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     auto pvt_source = private_nh->create_subscription<msg_interfaces::msg::Hcinspvatzcb>("/chcnav/devpvt", 1000, pvt_callback);
     auto serial_suber = nh->create_subscription<msg_interfaces::msg::HcSentence>("/chcnav/hc_sentence", 1000, hc_sentence_callback);
 
-    gs_fix_pub    = nh->create_publisher<sensor_msgs::msg::NavSatFix>("/sensing/gnss/ublox/nav_sat_fix", 1000);
+    gs_fix_pub = nh->create_publisher<sensor_msgs::msg::NavSatFix>("/sensing/gnss/ublox/nav_sat_fix", 1000);
     gs_imu_pub = private_nh->create_publisher<sensor_msgs::msg::Imu>("/sensing/imu/tamagawa/imu_raw", 1000);
  
 
@@ -298,6 +298,7 @@ static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg)
 
     // publish NavSatFix msg
     fix.header = msg->header;
+    fix.header.frame_id="gnss_link";
     fix.altitude = msg->altitude;
     fix.longitude = msg->longitude;
     fix.latitude = msg->latitude;
@@ -312,6 +313,7 @@ static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg)
 
     // publish imu msg
     imu.header = msg->header;
+    imu.header.frame_id="imu_link";
     imu.header.stamp = rclcpp::Clock().now();
 
     imu.angular_velocity.x = msg->vehicle_angular_velocity.x / 180 * M_PI;
