@@ -11,7 +11,10 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/static_transform_broadcaster.h"
 #include "chcnav/tf2_geometry_msgs.h"
-
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include <geometry_msgs/msg/quaternion.hpp>
+#include "autoware_sensing_msgs/msg/gnss_ins_orientation_stamped.hpp"
 
 #define M_PI 3.14159265358979323846
 static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg);
@@ -21,6 +24,7 @@ static rclcpp::Publisher<msg_interfaces::msg::Hcrawimub>::SharedPtr gs_devimu_pu
 
 static rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr gs_fix_pub;
 static rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr gs_imu_pub;
+static rclcpp::Publisher<autoware_sensing_msgs::msg::GnssInsOrientationStamped>::SharedPtr gs_Orientation_pub;
 
 static unsigned int g_leaps = 18;
 static std::string imu_frame_id;
@@ -45,14 +49,14 @@ int main(int argc, char **argv)
     private_nh->declare_parameter<std::string>("gnss_frame", imu_frame_id);
    // private_nh->get_parameter("gnss_frame", gnss_frame_id); 
 
-     std::cout<<" gnss_frame_id "<<gnss_frame_id<<std::endl;
+     //std::cout<<" gnss_frame_id "<<gnss_frame_id<<std::endl;
 
     auto pvt_source = private_nh->create_subscription<msg_interfaces::msg::Hcinspvatzcb>("/chcnav/devpvt", 1000, pvt_callback);
     auto serial_suber = nh->create_subscription<msg_interfaces::msg::HcSentence>("/chcnav/hc_sentence", 1000, hc_sentence_callback);
 
     gs_fix_pub = private_nh->create_publisher<sensor_msgs::msg::NavSatFix>("/sensing/gnss/ublox/nav_sat_fix", 1000);
     gs_imu_pub = private_nh->create_publisher<sensor_msgs::msg::Imu>("/sensing/imu/tamagawa/imu_raw", 1000);
- 
+    gs_Orientation_pub=private_nh->create_publisher<autoware_sensing_msgs::msg::GnssInsOrientationStamped>("/autoware_orientation", 1000);
 
     gs_devpvt_pub = nh->create_publisher<msg_interfaces::msg::Hcinspvatzcb>("/chcnav/devpvt", 1000);
     gs_devimu_pub = nh->create_publisher<msg_interfaces::msg::Hcrawimub>("/chcnav/devimu", 1000);
@@ -352,4 +356,17 @@ static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg)
     imu.orientation = qtn_msg;
 
     gs_imu_pub->publish(imu);
+
+    autoware_sensing_msgs::msg::GnssInsOrientationStamped gs_Orientation;
+    tf2::Quaternion tf2_quaternion;
+    geometry_msgs::msg::Quaternion geometry_quaternion;
+    tf2_quaternion.setRPY(msg->roll, msg->pitch, msg->yaw);
+    tf2::convert(tf2_quaternion, geometry_quaternion);
+    gs_Orientation.header=msg->header;
+    gs_Orientation.orientation.orientation=geometry_quaternion;  
+    gs_Orientation.orientation.rmse_rotation_x=msg->euler_stdev[0];
+    gs_Orientation.orientation.rmse_rotation_y=msg->euler_stdev[1];
+    gs_Orientation.orientation.rmse_rotation_z=msg->euler_stdev[2];
+
+    gs_Orientation_pub->publish(gs_Orientation);
 }
