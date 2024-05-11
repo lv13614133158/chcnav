@@ -46,8 +46,8 @@ int main(int argc, char **argv)
     private_nh->get_parameter("imu_frame", imu_frame_id); 
     //std::cout<<" imu_frame_id "<<imu_frame_id<<std::endl;
 
-    private_nh->declare_parameter<std::string>("gnss_frame", imu_frame_id);
-   // private_nh->get_parameter("gnss_frame", gnss_frame_id); 
+    private_nh->declare_parameter<std::string>("gnss_frame", gnss_frame_id);
+    private_nh->get_parameter("gnss_frame", gnss_frame_id); 
 
      //std::cout<<" gnss_frame_id "<<gnss_frame_id<<std::endl;
 
