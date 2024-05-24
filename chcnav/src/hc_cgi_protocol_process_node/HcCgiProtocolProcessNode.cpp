@@ -1,5 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
-
+#include "sensor_msgs/msg/nav_sat_fix.hpp"
+#include <array>
+#include <algorithm> // 包含算法头文件
 #include "msg_interfaces/msg/hc_sentence.hpp"
 #include "msg_interfaces/msg/hcinspvatzcb.hpp"
 #include "msg_interfaces/msg/hcrawimub.hpp"
@@ -236,7 +238,7 @@ static void msg_deal__hcrawimuib(const msg_interfaces::msg::HcSentence::ConstPtr
 
     // devpvt的header使用原msg的header
     devimu.header = msg->header;
-
+    devimu.header.frame_id=imu_frame_id;
     // 如果长度不对，不解析发布
     if (msg->data.size() == 68)
     {
@@ -317,8 +319,15 @@ static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg)
     fix.altitude = msg->altitude;
     fix.longitude = msg->longitude;
     fix.latitude = msg->latitude;
-    fix.status.service = fix.status.SERVICE_COMPASS;
+    fix.status.service = fix.status.SERVICE_GPS;
+    std::array<double, 9> position_covariance_msg={
+                            msg->position_stdev[1]*msg->position_stdev[1],0.0,0.0,
+                             0.0,msg->position_stdev[0]*msg->position_stdev[0],0.0,
+                             0.0,0.0,msg->position_stdev[2]*msg->position_stdev[2]};
+    std::copy(position_covariance_msg.begin(), position_covariance_msg.end(), fix.position_covariance.begin());
 
+    fix.position_covariance_type=sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_KNOWN;
+                           
     if (msg->stat[1] == 4 || msg->stat[1] == 8)
         fix.status.status = fix.status.STATUS_FIX;
     else
@@ -335,9 +344,9 @@ static void pvt_callback(const msg_interfaces::msg::Hcinspvatzcb::ConstPtr msg)
     imu.angular_velocity.y = msg->vehicle_angular_velocity.y / 180 * M_PI;
     imu.angular_velocity.z = msg->vehicle_angular_velocity.z / 180 * M_PI;
 
-    imu.linear_acceleration.x = msg->vehicle_linear_acceleration.x;
-    imu.linear_acceleration.y = msg->vehicle_linear_acceleration.y;
-    imu.linear_acceleration.z = msg->vehicle_linear_acceleration.z;
+    imu.linear_acceleration.x = msg->vehicle_linear_acceleration.x*9.8;
+    imu.linear_acceleration.y = msg->vehicle_linear_acceleration.y*9.8;
+    imu.linear_acceleration.z = msg->vehicle_linear_acceleration.z*9.8;
 
     // yaw: 车体坐标系下双天线航向角，取值范围 [-180, +180]，遵循右手定则，逆时针为正。
     // heading: 为车体坐标系下速度航向角，也称航迹角。取值范围 [0, 360] ，顺时针为正。
